@@ -6,17 +6,25 @@ dotenv.config();
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_TODOS_DATABASE_ID;
 
-function getCurrentDate() {
+function getTodayIST() {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+  // IST offset is UTC +5:30 in minutes
+
+  const istOffset = 5.5 * 60;
+  // Convert current UTC time to IST
+
+  const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
+
+  const year = istTime.getUTCFullYear();
+  const month = String(istTime.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(istTime.getUTCDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
 // Get all tasks with today's date, "morning" status, and unchecked "Done ?"
 async function getMorningTasksForToday() {
-  const today = getCurrentDate();
+  const today = getTodayIST();
 
   const response = await notion.databases.query({
     database_id: databaseId,

@@ -1,0 +1,28 @@
+name: Update Morning Tasks to Afternoon in Notion
+
+on:
+  schedule:
+    - cron: "30 6 * * *" # 12:00 PM IST (6:30 AM UTC)
+  workflow_dispatch: # allows manual run
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run updateMorningToAfternoon script
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_TODOS_DATABASE_ID: ${{ secrets.NOTION_TODOS_DATABASE_ID }}
+        run: npm run todos:noon

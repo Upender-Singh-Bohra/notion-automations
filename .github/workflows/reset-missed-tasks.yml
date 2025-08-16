@@ -2,7 +2,7 @@ name: Reset Missed Tasks in Notion
 
 on:
   schedule:
-    - cron: "30 23 * * *" # 5:00 AM IST (11:30 PM UTC)
+    - cron: "30 6 * * *" # 6:00 AM IST (6:30 PM UTC previous day)
   workflow_dispatch: # allows manual run
 
 jobs:

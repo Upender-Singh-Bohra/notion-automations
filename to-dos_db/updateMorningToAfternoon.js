@@ -8,11 +8,11 @@ const databaseId = process.env.NOTION_TODOS_DATABASE_ID;
 
 function getTodayIST() {
   const now = new Date();
+
   // IST offset is UTC +5:30 in minutes
-
   const istOffset = 5.5 * 60;
-  // Convert current UTC time to IST
 
+  // Convert current UTC time to IST
   const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
 
   const year = istTime.getUTCFullYear();
@@ -22,8 +22,8 @@ function getTodayIST() {
   return `${year}-${month}-${day}`;
 }
 
-// Get all tasks with today's date, "morning" status, and unchecked "Done ?"
-async function getMorningTasksForToday() {
+// Get all tasks for today
+async function getTasksForToday() {
   const today = getTodayIST();
 
   const response = await notion.databases.query({
@@ -39,7 +39,7 @@ async function getMorningTasksForToday() {
         {
           property: "Time of Day",
           status: {
-            equals: "morning",
+            does_not_equal: "Paused",
           },
         },
         {
@@ -55,31 +55,68 @@ async function getMorningTasksForToday() {
   return response.results;
 }
 
-// Update "Time of Day" property to "morning"
-async function updateTaskStatus(pageId) {
-  await notion.pages.update({
-    page_id: pageId,
-    properties: {
-      "Time of Day": {
-        status: {
-          name: "afternoon",
-        },
-      },
-    },
-  });
+async function updateTaskStatus(task) {
+  const taskId = task.id;
+  const currentStatus = task.properties["Time of Day"].status?.name;
+  const originalStatus = task.properties["Original Status"].number || null;
+
+  const validStatuses = [1, 2, 3];
+  const isValidOriginal = validStatuses.includes(originalStatus);
+
+  // Compute new statusCode if needed
+  let statusCode = originalStatus || 0;
+  if (!statusCode) {
+    if (currentStatus === "morning") statusCode = 1;
+    else if (currentStatus === "afternoon") statusCode = 2;
+    else if (currentStatus === "evening") statusCode = 3;
+  }
+
+  // Build update payload
+  const propertiesToUpdate = {};
+
+  if ((originalStatus === null || !isValidOriginal) && statusCode > 0) {
+    propertiesToUpdate["Original Status"] = { number: statusCode };
+  }
+
+  if (currentStatus === "morning") {
+    propertiesToUpdate["Time of Day"] = {
+      status: { name: "afternoon" },
+    };
+  }
+
+  // Send a single update call if needed
+  if (Object.keys(propertiesToUpdate).length > 0) {
+    await notion.pages.update({
+      page_id: taskId,
+      properties: propertiesToUpdate,
+    });
+  }
+
+  if (originalStatus === null) {
+    console.log(
+      `Preserved Original Status for task ${taskId} (status: ${currentStatus})`
+    );
+  } else if (!isValidOriginal) {
+    console.log(
+      `Corrected invalid Original Status for task ${taskId} → ${statusCode}`
+    );
+  }
+
+  if (currentStatus === "morning") {
+    console.log(`Updated task ${taskId} from morning → afternoon`);
+  }
 }
 
 async function run() {
   try {
-    const tasks = await getMorningTasksForToday();
-    console.log(`Found ${tasks.length} morning tasks for today.`);
+    const tasks = await getTasksForToday();
+    console.log(`Found ${tasks.length} active tasks for today.`);
 
     for (const task of tasks) {
-      await updateTaskStatus(task.id);
-      console.log(`Updated task: ${task.id}`);
+      await updateTaskStatus(task);
     }
 
-    console.log("✅ Done updating tasks to Afternoon.");
+    console.log("✅ Done processing today's tasks.");
   } catch (error) {
     console.error("❌ Error:", error.message);
   }

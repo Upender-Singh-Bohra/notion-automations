@@ -11,11 +11,11 @@ const databaseId = process.env.NOTION_TODOS_DATABASE_ID;
 // Helper to get today's date in IST (Indian Standard Time) as YYYY-MM-DD
 function getTodayIST() {
   const now = new Date();
-  // IST offset is UTC +5:30 in minutes
 
+  // IST offset is UTC +5:30 in minutes
   const istOffset = 5.5 * 60;
+
   // Convert current UTC time to IST
-  
   const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
 
   const year = istTime.getUTCFullYear();
@@ -55,30 +55,68 @@ async function getTasksToUpdate() {
   return response.results;
 }
 
-// Update the "Date" property to today
-async function updateTaskDate(pageId) {
-  await notion.pages.update({
-    page_id: pageId,
-    properties: {
-      Date: {
-        date: {
-          start: getTodayIST(),
-        },
-      },
+async function restoreUnfinishedTask(task) {
+  const taskId = task.id;
+  const originalStatus = task.properties["Original Status"].number || null;
+  const currentStatus = task.properties["Time of Day"]?.status?.name;
+  const today = getTodayIST();
+  console.log(today);
+
+  const propertiesToUpdate = {
+    Date: {
+      date: { start: today },
     },
+  };
+
+  let restoreStatus = null;
+
+  if (originalStatus === 1) restoreStatus = "morning";
+  else if (originalStatus === 2) restoreStatus = "afternoon";
+  else if (originalStatus === 3) restoreStatus = "evening";
+
+  if (restoreStatus) {
+    propertiesToUpdate["Time of Day"] = { status: { name: restoreStatus } };
+  } else {
+    // Correct invalid "Original Status" using current status of the task
+    if (currentStatus === "morning") {
+      propertiesToUpdate["Original Status"] = { number: 1 };
+    } else if (currentStatus === "afternoon") {
+      propertiesToUpdate["Original Status"] = { number: 2 };
+    } else if (currentStatus === "evening") {
+      propertiesToUpdate["Original Status"] = { number: 3 };
+    }
+  }
+
+  // Update first
+  await notion.pages.update({
+    page_id: taskId,
+    properties: propertiesToUpdate,
   });
+
+  // Log after successful update
+  if (restoreStatus) {
+    console.log(
+      `Reset task ${taskId} → date updated to today & restored to original status (${restoreStatus})`
+    );
+  } else if (currentStatus) {
+    console.log(
+      `Corrected invalid Original Status for task ${taskId} → set based on current "${currentStatus}"`
+    );
+  } else {
+    console.log(
+      `Reset task ${taskId} → date updated to today, status unchanged`
+    );
+  }
 }
 
 async function run() {
   try {
-    console.log(getTodayIST());
     const tasks = await getTasksToUpdate();
     console.log(`Found ${tasks.length} tasks to update.`);
     for (const task of tasks) {
-      await updateTaskDate(task.id);
-      console.log(`Updated task: ${task.id}`);
+      await restoreUnfinishedTask(task);
     }
-    console.log("✅ Done updating tasks.");
+    console.log("✅ Done restoring tasks.");
   } catch (error) {
     console.error("Error:", error.message);
   }

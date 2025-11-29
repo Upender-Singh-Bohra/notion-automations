@@ -46,7 +46,7 @@ async function getTasksToUpdate() {
         {
           property: "Time of Day",
           status: {
-            does_not_equal: "Paused",
+            does_not_equal: "Paused ⛔",
           },
         },
       ],
@@ -70,19 +70,19 @@ async function restoreUnfinishedTask(task) {
 
   let restoreStatus = null;
 
-  if (originalStatus === 1) restoreStatus = "morning";
-  else if (originalStatus === 2) restoreStatus = "afternoon";
-  else if (originalStatus === 3) restoreStatus = "evening";
+  if (originalStatus === 1) restoreStatus = "morning 🌤️";
+  else if (originalStatus === 2) restoreStatus = "afternoon 🕛";
+  else if (originalStatus === 3) restoreStatus = "evening 🌙";
 
   if (restoreStatus) {
     propertiesToUpdate["Time of Day"] = { status: { name: restoreStatus } };
   } else {
     // Correct invalid "Original Status" using current status of the task
-    if (currentStatus === "morning") {
+    if (currentStatus === "morning 🌤️") {
       propertiesToUpdate["Original Status"] = { number: 1 };
-    } else if (currentStatus === "afternoon") {
+    } else if (currentStatus === "afternoon 🕛") {
       propertiesToUpdate["Original Status"] = { number: 2 };
-    } else if (currentStatus === "evening") {
+    } else if (currentStatus === "evening 🌙") {
       propertiesToUpdate["Original Status"] = { number: 3 };
     }
   }

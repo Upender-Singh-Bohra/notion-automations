@@ -39,7 +39,7 @@ async function getTasksForToday() {
         {
           property: "Time of Day",
           status: {
-            does_not_equal: "Paused",
+            does_not_equal: "Paused ⛔",
           },
         },
         {
@@ -66,9 +66,9 @@ async function updateTaskStatus(task) {
   // Compute new statusCode if needed
   let statusCode = originalStatus || 0;
   if (!statusCode) {
-    if (currentStatus === "morning") statusCode = 1;
-    else if (currentStatus === "afternoon") statusCode = 2;
-    else if (currentStatus === "evening") statusCode = 3;
+    if (currentStatus === "morning 🌤️") statusCode = 1;
+    else if (currentStatus === "afternoon 🕛") statusCode = 2;
+    else if (currentStatus === "evening 🌙") statusCode = 3;
   }
 
   // Build update payload
@@ -78,9 +78,9 @@ async function updateTaskStatus(task) {
     propertiesToUpdate["Original Status"] = { number: statusCode };
   }
 
-  if (currentStatus === "morning") {
+  if (currentStatus === "morning 🌤️") {
     propertiesToUpdate["Time of Day"] = {
-      status: { name: "afternoon" },
+      status: { name: "afternoon 🕛" },
     };
   }
 
@@ -102,7 +102,7 @@ async function updateTaskStatus(task) {
     );
   }
 
-  if (currentStatus === "morning") {
+  if (currentStatus === "morning 🌤️") {
     console.log(`Updated task ${taskId} from morning → afternoon`);
   }
 }
